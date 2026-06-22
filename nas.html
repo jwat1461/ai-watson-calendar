@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Watson AI NAS</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--accent:#3b5bdb;--accent-dark:#2f4ac0;--sidebar:256px;--hdr:52px;--bg:#f0f2f5;--sur:#fff;--bdr:#e0e4ef;--txt:#2d3436;--muted:#636e72;--red:#e05252}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* Header */
+.hdr{height:var(--hdr);background:linear-gradient(90deg,#1a237e,var(--accent) 50%,#1a237e);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0;box-shadow:0 2px 8px rgba(59,91,219,.3);z-index:10}
+.hdr-title{font-size:.95rem;font-weight:800;letter-spacing:2px;text-transform:uppercase}
+.hdr-title span{opacity:.55;font-weight:400;font-size:.7rem;margin-left:6px;letter-spacing:1px}
+.hdr-right{display:flex;align-items:center;gap:10px;font-size:.82rem}
+.hdr-user{opacity:.8;font-size:.8rem}
+.hdr-btn{background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:6px;padding:5px 13px;font-size:.78rem;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;transition:background .15s}
+.hdr-btn:hover{background:rgba(255,255,255,.28)}
+
+/* Layout */
+.main{display:flex;flex:1;overflow:hidden}
+
+/* Sidebar */
+.sidebar{width:var(--sidebar);min-width:var(--sidebar);background:var(--sur);border-right:1px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden}
+.sb-head{padding:10px 14px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);border-bottom:1px solid var(--bdr);flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+.sb-home{cursor:pointer;color:var(--accent);font-size:.75rem;font-weight:600}
+.sb-home:hover{text-decoration:underline}
+.tree-wrap{overflow-y:auto;flex:1;padding:4px 0}
+.ti{display:flex;align-items:center;gap:4px;padding:4px 8px;cursor:pointer;font-size:.83rem;color:var(--txt);border-radius:5px;margin:1px 5px;user-select:none;white-space:nowrap;overflow:hidden}
+.ti:hover{background:#f0f2ff}
+.ti.active{background:#e8eaf6;color:var(--accent);font-weight:600}
+.ti-tog{width:14px;font-size:.6rem;color:var(--muted);flex-shrink:0;text-align:center}
+.ti-name{overflow:hidden;text-overflow:ellipsis}
+
+/* Content */
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.toolbar{padding:7px 14px;background:var(--sur);border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap}
+.btn{border:none;border-radius:6px;padding:6px 13px;font-size:.8rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:opacity .15s;white-space:nowrap}
+.btn:hover{opacity:.82}
+.btn:disabled{opacity:.35;cursor:default}
+.btn-p{background:var(--accent);color:#fff}
+.btn-g{background:#27ae60;color:#fff}
+.btn-n{background:#f0f0f0;color:var(--txt)}
+.btn-d{background:var(--red);color:#fff}
+.btn-save{background:#e67e22;color:#fff}
+
+.breadcrumb{padding:5px 16px;background:#f8f9fb;border-bottom:1px solid var(--bdr);font-size:.78rem;color:var(--muted);display:flex;align-items:center;gap:3px;flex-shrink:0;flex-wrap:wrap}
+.bc-part{cursor:pointer;color:var(--accent);font-weight:500}
+.bc-part:hover{text-decoration:underline}
+
+/* View */
+.view{flex:1;overflow-y:auto;padding:16px}
+
+/* File grid */
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:10px}
+.fcard{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;border-radius:10px;cursor:pointer;border:2px solid transparent;text-align:center;user-select:none;transition:background .12s,border-color .12s;gap:5px}
+.fcard:hover{background:#f0f2ff}
+.fcard.sel{background:#e8eaf6;border-color:var(--accent)}
+.fcard .ic{font-size:2.1rem;line-height:1}
+.fcard .fn{font-size:.7rem;color:var(--txt);font-weight:500;overflow:hidden;text-overflow:ellipsis;width:100%;white-space:nowrap}
+.fcard .fm{font-size:.62rem;color:var(--muted)}
+.empty{color:var(--muted);font-size:.88rem;text-align:center;padding:48px 20px;line-height:1.7}
+
+/* Note editor */
+.ne{display:flex;flex-direction:column;height:100%;gap:10px}
+.ne-info .ne-title{font-size:.9rem;font-weight:600;color:var(--txt)}
+.ne-info .ne-path{font-size:.7rem;color:var(--muted);margin-top:2px}
+.ne-area{flex:1;border:1.5px solid var(--bdr);border-radius:8px;padding:14px;font-size:.88rem;font-family:'Consolas','Courier New',monospace;resize:none;outline:none;color:var(--txt);transition:border-color .15s;min-height:260px}
+.ne-area:focus{border-color:var(--accent)}
+.ne-st{font-size:.72rem;color:var(--muted)}
+.ne-st.dirty{color:#e67e22}
+
+/* File preview */
+.fprev{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;color:var(--muted)}
+.fprev .pv-ic{font-size:4rem}
+.fprev .pv-name{font-size:1.05rem;font-weight:600;color:var(--txt)}
+.fprev .pv-meta{font-size:.8rem}
+
+/* Status bar */
+.statusbar{height:24px;padding:0 14px;background:var(--sur);border-top:1px solid var(--bdr);font-size:.7rem;color:var(--muted);display:flex;align-items:center;flex-shrink:0}
+
+/* Modals */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:14px;padding:26px;width:340px;box-shadow:0 8px 40px rgba(0,0,0,.18)}
+.modal h2{font-size:.95rem;margin-bottom:14px;color:var(--txt)}
+.modal input{width:100%;border:1.5px solid var(--bdr);border-radius:8px;padding:9px 12px;font-size:.9rem;outline:none;transition:border-color .15s;margin-bottom:13px;font-family:inherit;color:var(--txt)}
+.modal input:focus{border-color:var(--accent)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-title">Watson AI <span>NAS</span></div>
+  <div class="hdr-right">
+    <span class="hdr-user" id="hdr-user"></span>
+    <a href="/" class="hdr-btn">📅 Calendar</a>
+    <button class="hdr-btn" id="btn-logout">Logout</button>
+  </div>
+</header>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="sb-head">
+      File Tree
+      <span class="sb-home" id="sb-home">⌂ Home</span>
+    </div>
+    <div class="tree-wrap" id="tree"></div>
+  </div>
+
+  <div class="content">
+    <div class="toolbar">
+      <button class="btn btn-p" id="btn-folder">📁 New Folder</button>
+      <button class="btn btn-p" id="btn-note">📝 New Note</button>
+      <button class="btn btn-g" id="btn-upload">⬆ Upload</button>
+      <input type="file" id="file-input" style="display:none" multiple>
+      <div style="flex:1"></div>
+      <button class="btn btn-save" id="btn-save" style="display:none">💾 Save</button>
+      <button class="btn btn-n" id="btn-dl" disabled>⬇ Download</button>
+      <button class="btn btn-n" id="btn-rename" disabled>✏ Rename</button>
+      <button class="btn btn-d" id="btn-delete" disabled>🗑 Delete</button>
+    </div>
+    <div class="breadcrumb" id="breadcrumb"></div>
+    <div class="view" id="view"></div>
+  </div>
+</div>
+
+<div class="statusbar" id="status">Ready</div>
+
+<!-- New Folder -->
+<div class="overlay" id="m-folder">
+  <div class="modal">
+    <h2>New Folder</h2>
+    <input id="m-folder-name" placeholder="Folder name" maxlength="80">
+    <div class="modal-actions">
+      <button class="btn btn-n" onclick="closeM('m-folder')">Cancel</button>
+      <button class="btn btn-p" id="m-folder-ok">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Note -->
+<div class="overlay" id="m-note">
+  <div class="modal">
+    <h2>New Note</h2>
+    <input id="m-note-name" placeholder="note.txt" maxlength="80">
+    <div class="modal-actions">
+      <button class="btn btn-n" onclick="closeM('m-note')">Cancel</button>
+      <button class="btn btn-p" id="m-note-ok">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rename -->
+<div class="overlay" id="m-rename">
+  <div class="modal">
+    <h2>Rename</h2>
+    <input id="m-rename-val" maxlength="128">
+    <div class="modal-actions">
+      <button class="btn btn-n" onclick="closeM('m-rename')">Cancel</button>
+      <button class="btn btn-p" id="m-rename-ok">Rename</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SK = 'cal_session';
+const TEXT_EXT = new Set(['txt','md','markdown','json','js','ts','html','css','py','sh','csv','xml','yaml','yml','log','ini','cfg']);
+
+function sess() { try { return JSON.parse(localStorage.getItem(SK)); } catch { return null; } }
+function aH() {
+  const s = sess();
+  return s ? {'Content-Type':'application/json','Authorization':`Bearer ${s.token}`} : {'Content-Type':'application/json'};
+}
+async function req(method, url, body) {
+  const o = {method, headers: aH()};
+  if (body !== undefined) o.body = JSON.stringify(body);
+  return fetch(url, o);
+}
+
+let curPath = '';
+let selItem = null;
+let note = null; // {path, dirty}
+
+function setStatus(m) { document.getElementById('status').textContent = m; }
+function openM(id) { document.getElementById(id).classList.add('open'); }
+function closeM(id) { document.getElementById(id).classList.remove('open'); }
+
+function fileIcon(item) {
+  if (item.type === 'dir') return '📁';
+  const ext = (item.name.split('.').pop() || '').toLowerCase();
+  const m = {txt:'📄',md:'📝',markdown:'📝',pdf:'📕',jpg:'🖼️',jpeg:'🖼️',png:'🖼️',gif:'🖼️',svg:'🖼️',webp:'🖼️',
+    mp4:'🎬',mov:'🎬',mp3:'🎵',wav:'🎵',zip:'📦',tar:'📦',gz:'📦',rar:'📦',
+    js:'⚡',ts:'⚡',py:'🐍',html:'🌐',css:'🎨',json:'📋',csv:'📊',xlsx:'📊',doc:'📝',docx:'📝'};
+  return m[ext] || '📄';
+}
+function fmtSize(b) {
+  if (!b) return '—';
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+function isText(name) { return TEXT_EXT.has((name.split('.').pop() || '').toLowerCase()); }
+function parentOf(p) { return p.includes('/') ? p.substring(0, p.lastIndexOf('/')) : ''; }
+
+// ── Breadcrumb ────────────────────────────────────────────────
+function renderBreadcrumb(p) {
+  const el = document.getElementById('breadcrumb');
+  el.innerHTML = '';
+  const home = Object.assign(document.createElement('span'), {className:'bc-part', textContent:'Home'});
+  home.onclick = () => navigate('');
+  el.appendChild(home);
+  if (!p) return;
+  let built = '';
+  p.split('/').forEach(part => {
+    built = built ? built + '/' + part : part;
+    el.insertAdjacentHTML('beforeend', '<span style="color:var(--muted)"> › </span>');
+    const sp = Object.assign(document.createElement('span'), {className:'bc-part', textContent: part});
+    const cap = built;
+    sp.onclick = () => navigate(cap);
+    el.appendChild(sp);
+  });
+}
+
+// ── Tree ──────────────────────────────────────────────────────
+async function loadTree() {
+  const res = await req('GET', '/api/nas/tree');
+  if (!res.ok) return;
+  const nodes = await res.json();
+  const tree = document.getElementById('tree');
+  tree.innerHTML = '';
+  renderTreeNodes(nodes, tree, 0);
+}
+
+function renderTreeNodes(nodes, container, depth) {
+  nodes.forEach(node => {
+    const row = document.createElement('div');
+    row.className = 'ti' + (node.path === curPath ? ' active' : '');
+    row.dataset.path = node.path;
+    row.style.paddingLeft = (8 + depth * 14) + 'px';
+    const hasKids = node.children?.length > 0;
+    row.innerHTML = `<span class="ti-tog">${hasKids ? '▶' : ''}</span><span>📁</span><span class="ti-name" title="${node.name}">${node.name}</span>`;
+    row.onclick = e => { e.stopPropagation(); navigate(node.path); };
+    container.appendChild(row);
+
+    if (hasKids) {
+      const sub = document.createElement('div');
+      sub.style.display = 'none';
+      renderTreeNodes(node.children, sub, depth + 1);
+      container.appendChild(sub);
+      row.querySelector('.ti-tog').addEventListener('click', e => {
+        e.stopPropagation();
+        const open = sub.style.display !== 'none';
+        sub.style.display = open ? 'none' : 'block';
+        row.querySelector('.ti-tog').textContent = open ? '▶' : '▼';
+      });
+    }
+  });
+}
+
+function markTreeActive(p) {
+  document.querySelectorAll('.ti').forEach(el => el.classList.toggle('active', el.dataset.path === p));
+}
+
+function expandTo(p) {
+  let built = '';
+  p.split('/').forEach(part => {
+    built = built ? built + '/' + part : part;
+    const row = document.querySelector(`.ti[data-path="${built}"]`);
+    if (row) {
+      const sub = row.nextElementSibling;
+      if (sub && sub.classList.contains === undefined && sub.style.display === 'none') {
+        sub.style.display = 'block';
+        const tog = row.querySelector('.ti-tog');
+        if (tog && tog.textContent === '▶') tog.textContent = '▼';
+      }
+    }
+  });
+}
+
+// ── Navigation ────────────────────────────────────────────────
+async function navigate(p) {
+  if (note?.dirty && !confirm('Unsaved changes — discard?')) return;
+  note = null;
+  document.getElementById('btn-save').style.display = 'none';
+  curPath = p;
+  selItem = null;
+  updateButtons();
+  renderBreadcrumb(p);
+  markTreeActive(p);
+  if (p) expandTo(p);
+  await loadDir(p);
+}
+
+async function loadDir(p) {
+  setStatus('Loading…');
+  const res = await req('GET', `/api/nas/list?path=${encodeURIComponent(p)}`);
+  if (!res.ok) { setStatus('Error loading directory'); return; }
+  const items = await res.json();
+  renderGrid(items);
+  setStatus(`${items.length} item${items.length !== 1 ? 's' : ''}`);
+}
+
+// ── File Grid ─────────────────────────────────────────────────
+function renderGrid(items) {
+  const view = document.getElementById('view');
+  if (!items.length) {
+    view.innerHTML = '<div class="empty">📭 Empty folder<br><small>Create a folder, note, or upload files.</small></div>';
+    return;
+  }
+  const grid = document.createElement('div');
+  grid.className = 'fgrid';
+  items.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'fcard';
+    card.innerHTML = `<div class="ic">${fileIcon(item)}</div><div class="fn" title="${item.name}">${item.name}</div><div class="fm">${item.type === 'dir' ? 'Folder' : fmtSize(item.size)}</div>`;
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.fcard').forEach(c => c.classList.remove('sel'));
+      card.classList.add('sel');
+      selItem = item;
+      updateButtons();
+    });
+    card.addEventListener('dblclick', () => openItem(item));
+    grid.appendChild(card);
+  });
+  view.innerHTML = '';
+  view.appendChild(grid);
+}
+
+function updateButtons() {
+  const has = !!selItem;
+  const isFile = has && selItem.type === 'file';
+  document.getElementById('btn-delete').disabled = !has;
+  document.getElementById('btn-rename').disabled = !has;
+  document.getElementById('btn-dl').disabled = !isFile;
+}
+
+async function openItem(item) {
+  if (item.type === 'dir') { navigate(item.path); return; }
+  if (isText(item.name)) {
+    setStatus('Opening…');
+    const res = await req('GET', `/api/nas/note?path=${encodeURIComponent(item.path)}`);
+    const data = await res.json();
+    showEditor(item, data.content ?? '');
+  } else {
+    showPreview(item);
+  }
+}
+
+// ── Note Editor ───────────────────────────────────────────────
+function showEditor(item, content) {
+  note = {path: item.path, dirty: false};
+  document.getElementById('btn-save').style.display = '';
+  const view = document.getElementById('view');
+  view.innerHTML = `<div class="ne">
+    <div class="ne-info"><div class="ne-title">${item.name}</div><div class="ne-path">${item.path}</div></div>
+    <textarea class="ne-area" id="ne-ta" spellcheck="false"></textarea>
+    <div class="ne-st" id="ne-st">Saved</div>
+  </div>`;
+  const ta = document.getElementById('ne-ta');
+  ta.value = content;
+  ta.addEventListener('input', () => {
+    if (note && !note.dirty) {
+      note.dirty = true;
+      const st = document.getElementById('ne-st');
+      if (st) { st.textContent = '● Unsaved changes'; st.className = 'ne-st dirty'; }
+    }
+  });
+  ta.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveNote(); } });
+  ta.focus();
+  setStatus('Editing: ' + item.path);
+}
+
+async function saveNote() {
+  if (!note) return;
+  const content = document.getElementById('ne-ta')?.value ?? '';
+  setStatus('Saving…');
+  const res = await req('POST', '/api/nas/note', {path: note.path, content});
+  if (res.ok) {
+    note.dirty = false;
+    const st = document.getElementById('ne-st');
+    if (st) { st.textContent = 'Saved'; st.className = 'ne-st'; }
+    setStatus('Saved: ' + note.path);
+    await loadTree();
+  } else { setStatus('Save failed'); }
+}
+
+// ── File Preview ──────────────────────────────────────────────
+function showPreview(item) {
+  note = null;
+  document.getElementById('btn-save').style.display = 'none';
+  const view = document.getElementById('view');
+  view.innerHTML = `<div class="fprev">
+    <div class="pv-ic">${fileIcon(item)}</div>
+    <div class="pv-name">${item.name}</div>
+    <div class="pv-meta">${fmtSize(item.size)}</div>
+    <button class="btn btn-p" id="pv-dl">⬇ Download</button>
+  </div>`;
+  document.getElementById('pv-dl').onclick = () => downloadFile(item.path, item.name);
+}
+
+async function downloadFile(p, name) {
+  setStatus('Downloading…');
+  const res = await fetch(`/api/nas/download?path=${encodeURIComponent(p)}`, {headers: aH()});
+  if (!res.ok) { setStatus('Download failed'); return; }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  Object.assign(document.createElement('a'), {href: url, download: name}).click();
+  URL.revokeObjectURL(url);
+  setStatus('Downloaded: ' + name);
+}
+
+// ── CRUD ──────────────────────────────────────────────────────
+async function createFolder(name) {
+  const p = curPath ? `${curPath}/${name}` : name;
+  const res = await req('POST', '/api/nas/mkdir', {path: p});
+  if (res.ok) { setStatus('Created: ' + name); await loadTree(); await loadDir(curPath); }
+  else { const e = await res.json().catch(() => ({})); setStatus('Error: ' + (e.error || res.status)); }
+}
+
+async function createNote(name) {
+  if (!name.includes('.')) name += '.txt';
+  const p = curPath ? `${curPath}/${name}` : name;
+  const res = await req('POST', '/api/nas/note', {path: p, content: ''});
+  if (res.ok) { await loadTree(); await loadDir(curPath); openItem({name, type:'file', path: p, size: 0}); }
+  else { const e = await res.json().catch(() => ({})); setStatus('Error: ' + (e.error || res.status)); }
+}
+
+async function uploadFiles(files) {
+  for (const file of files) {
+    setStatus(`Uploading ${file.name}…`);
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('path', curPath);
+    const res = await fetch('/api/nas/upload', {method:'POST', headers:{Authorization: aH().Authorization}, body: fd});
+    if (!res.ok) { setStatus('Upload failed: ' + file.name); return; }
+  }
+  setStatus('Upload complete');
+  await loadTree();
+  await loadDir(curPath);
+}
+
+async function deleteSelected() {
+  if (!selItem) return;
+  const item = selItem;
+  if (!confirm(`Delete "${item.name}"? This cannot be undone.`)) return;
+  const res = await req('DELETE', `/api/nas/delete?path=${encodeURIComponent(item.path)}`);
+  if (res.ok) {
+    setStatus('Deleted: ' + item.name);
+    selItem = null; updateButtons();
+    if (item.type === 'dir' && (curPath === item.path || curPath.startsWith(item.path + '/'))) {
+      await navigate(parentOf(item.path));
+    } else {
+      await loadDir(curPath);
+    }
+    await loadTree();
+  } else { const e = await res.json().catch(() => ({})); setStatus('Error: ' + (e.error || res.status)); }
+}
+
+async function doRename(newName) {
+  if (!selItem || !newName) return;
+  const res = await req('PATCH', '/api/nas/rename', {path: selItem.path, newName});
+  if (res.ok) {
+    setStatus('Renamed to: ' + newName);
+    selItem = null; updateButtons();
+    await loadTree();
+    await loadDir(curPath);
+  } else { const e = await res.json().catch(() => ({})); setStatus('Error: ' + (e.error || res.status)); }
+}
+
+// ── Wire up ───────────────────────────────────────────────────
+document.getElementById('sb-home').onclick = () => navigate('');
+
+document.getElementById('btn-folder').onclick = () => {
+  document.getElementById('m-folder-name').value = '';
+  openM('m-folder');
+  setTimeout(() => document.getElementById('m-folder-name').focus(), 40);
+};
+document.getElementById('m-folder-ok').onclick = () => {
+  const n = document.getElementById('m-folder-name').value.trim();
+  if (!n) return; closeM('m-folder'); createFolder(n);
+};
+document.getElementById('m-folder-name').onkeydown = e => { if (e.key === 'Enter') document.getElementById('m-folder-ok').click(); };
+
+document.getElementById('btn-note').onclick = () => {
+  document.getElementById('m-note-name').value = '';
+  openM('m-note');
+  setTimeout(() => document.getElementById('m-note-name').focus(), 40);
+};
+document.getElementById('m-note-ok').onclick = () => {
+  const n = document.getElementById('m-note-name').value.trim();
+  if (!n) return; closeM('m-note'); createNote(n);
+};
+document.getElementById('m-note-name').onkeydown = e => { if (e.key === 'Enter') document.getElementById('m-note-ok').click(); };
+
+document.getElementById('btn-upload').onclick = () => document.getElementById('file-input').click();
+document.getElementById('file-input').onchange = e => { if (e.target.files.length) uploadFiles(e.target.files); e.target.value = ''; };
+
+document.getElementById('btn-save').onclick = saveNote;
+document.getElementById('btn-delete').onclick = deleteSelected;
+document.getElementById('btn-dl').onclick = () => { if (selItem?.type === 'file') downloadFile(selItem.path, selItem.name); };
+
+document.getElementById('btn-rename').onclick = () => {
+  if (!selItem) return;
+  const inp = document.getElementById('m-rename-val');
+  inp.value = selItem.name;
+  openM('m-rename');
+  setTimeout(() => { inp.focus(); inp.select(); }, 40);
+};
+document.getElementById('m-rename-ok').onclick = () => {
+  const n = document.getElementById('m-rename-val').value.trim();
+  if (!n) return; closeM('m-rename'); doRename(n);
+};
+document.getElementById('m-rename-val').onkeydown = e => { if (e.key === 'Enter') document.getElementById('m-rename-ok').click(); };
+
+document.getElementById('btn-logout').onclick = () => { localStorage.removeItem(SK); window.location.href = '/'; };
+
+['m-folder','m-note','m-rename'].forEach(id => {
+  document.getElementById(id).addEventListener('click', e => { if (e.target.id === id) closeM(id); });
+});
+
+// ── Init ──────────────────────────────────────────────────────
+async function init() {
+  const s = sess();
+  if (!s?.token) { window.location.href = '/'; return; }
+  document.getElementById('hdr-user').textContent = s.name || s.email || '';
+  await loadTree();
+  await navigate('');
+}
+
+init();
+</script>
+</body>
+</html>

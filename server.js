@@ -5,6 +5,7 @@ const bcrypt   = require('bcryptjs');
 const jwt      = require('jsonwebtoken');
 const cors     = require('cors');
 const path     = require('path');
+const multer   = require('multer');
 
 const app  = express();
 const pool = new Pool({
@@ -122,6 +123,151 @@ app.delete('/api/events/:id', authMiddleware, async (req, res) => {
   }
 });
 
+// ── NAS ──────────────────────────────────────────────────────
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
+
+function buildNasTree(nodes, prefix) {
+  return nodes
+    .filter(n => prefix
+      ? n.path.startsWith(prefix + '/') && !n.path.slice(prefix.length + 1).includes('/')
+      : !n.path.includes('/'))
+    .map(n => ({ id: n.id, name: n.name, path: n.path, children: buildNasTree(nodes, n.path) }));
+}
+
+app.get('/nas', (_req, res) => res.sendFile(path.join(__dirname, 'nas.html')));
+
+app.get('/api/nas/tree', authMiddleware, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, name, path FROM nas_nodes WHERE user_id=$1 AND type='dir' ORDER BY path`,
+      [req.user.id]
+    );
+    res.json(buildNasTree(rows, ''));
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Server error.' }); }
+});
+
+app.get('/api/nas/list', authMiddleware, async (req, res) => {
+  const dir = req.query.path || '';
+  const uid = req.user.id;
+  try {
+    const { rows } = dir
+      ? await pool.query(
+          `SELECT id, name, type, path, size, mime_type, updated_at FROM nas_nodes
+           WHERE user_id=$1 AND path LIKE $2 AND path NOT LIKE $3 ORDER BY type DESC, name`,
+          [uid, dir + '/%', dir + '/%/%'])
+      : await pool.query(
+          `SELECT id, name, type, path, size, mime_type, updated_at FROM nas_nodes
+           WHERE user_id=$1 AND path NOT LIKE '%/%' ORDER BY type DESC, name`,
+          [uid]);
+    res.json(rows);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Server error.' }); }
+});
+
+app.post('/api/nas/mkdir', authMiddleware, async (req, res) => {
+  const { path: p } = req.body;
+  if (!p) return res.status(400).json({ error: 'path required' });
+  try {
+    await pool.query(
+      `INSERT INTO nas_nodes (user_id, path, name, type) VALUES ($1,$2,$3,'dir')
+       ON CONFLICT (user_id, path) DO NOTHING`,
+      [req.user.id, p, p.split('/').pop()]
+    );
+    res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Server error.' }); }
+});
+
+app.post('/api/nas/upload', authMiddleware, upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file' });
+  const dir = req.body.path || '';
+  const name = req.file.originalname;
+  const filePath = dir ? `${dir}/${name}` : name;
+  try {
+    await pool.query(
+      `INSERT INTO nas_nodes (user_id, path, name, type, content, size, mime_type)
+       VALUES ($1,$2,$3,'file',$4,$5,$6)
+       ON CONFLICT (user_id, path) DO UPDATE SET content=$4, size=$5, mime_type=$6, updated_at=NOW()`,
+      [req.user.id, filePath, name, req.file.buffer, req.file.size, req.file.mimetype || 'application/octet-stream']
+    );
+    res.json({ ok: true, name });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Server error.' }); }
+});
+
+app.get('/api/nas/download', authMiddleware, async (req, res) => {
+  const p = req.query.path;
+  if (!p) return res.status(400).json({ error: 'path required' });
+  try {
+    const { rows } = await pool.query(
+      `SELECT name, content, mime_type FROM nas_nodes WHERE user_id=$1 AND path=$2 AND type='file'`,
+      [req.user.id, p]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Not found' });
+    const { name, content, mime_type } = rows[0];
+    res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
+    res.setHeader('Content-Type', mime_type || 'application/octet-stream');
+    res.send(content);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Server error.' }); }
+});
+
+app.get('/api/nas/note', authMiddleware, async (req, res) => {
+  const p = req.query.path;
+  if (!p) return res.status(400).json({ error: 'path required' });
+  try {
+    const { rows } = await pool.query(
+      `SELECT content FROM nas_nodes WHERE user_id=$1 AND path=$2`,
+      [req.user.id, p]
+    );
+    const buf = rows[0]?.content;
+    res.json({ content: buf ? buf.toString('utf8') : '' });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Server error.' }); }
+});
+
+app.post('/api/nas/note', authMiddleware, async (req, res) => {
+  const { path: p, content } = req.body;
+  if (!p) return res.status(400).json({ error: 'path required' });
+  const name = p.split('/').pop();
+  const buf = Buffer.from(content ?? '', 'utf8');
+  try {
+    await pool.query(
+      `INSERT INTO nas_nodes (user_id, path, name, type, content, size, mime_type)
+       VALUES ($1,$2,$3,'file',$4,$5,'text/plain')
+       ON CONFLICT (user_id, path) DO UPDATE SET content=$4, size=$5, updated_at=NOW()`,
+      [req.user.id, p, name, buf, buf.length]
+    );
+    res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Server error.' }); }
+});
+
+app.delete('/api/nas/delete', authMiddleware, async (req, res) => {
+  const p = req.query.path;
+  if (!p) return res.status(400).json({ error: 'path required' });
+  try {
+    await pool.query(
+      `DELETE FROM nas_nodes WHERE user_id=$1 AND (path=$2 OR path LIKE $3)`,
+      [req.user.id, p, p + '/%']
+    );
+    res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Server error.' }); }
+});
+
+app.patch('/api/nas/rename', authMiddleware, async (req, res) => {
+  const { path: oldPath, newName } = req.body;
+  if (!oldPath || !newName || /[/\\]/.test(newName))
+    return res.status(400).json({ error: 'Invalid' });
+  const parent = oldPath.includes('/') ? oldPath.substring(0, oldPath.lastIndexOf('/')) : '';
+  const newPath = parent ? `${parent}/${newName}` : newName;
+  try {
+    await pool.query(
+      `UPDATE nas_nodes
+       SET path = $3 || SUBSTRING(path FROM $4),
+           name = CASE WHEN path=$1 THEN $5 ELSE name END,
+           updated_at = NOW()
+       WHERE user_id=$2 AND (path=$1 OR path LIKE $6)`,
+      [oldPath, req.user.id, newPath, oldPath.length + 1, newName, oldPath + '/%']
+    );
+    res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'Server error.' }); }
+});
+
 // ── Error handler ────────────────────────────────────────────
 app.use((err, _req, res, _next) => {
   console.error(err);
@@ -164,6 +310,21 @@ async function start() {
       day        INTEGER NOT NULL,
       title      TEXT NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS nas_nodes (
+      id         SERIAL PRIMARY KEY,
+      user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      path       TEXT NOT NULL,
+      name       TEXT NOT NULL,
+      type       TEXT NOT NULL CHECK (type IN ('dir','file')),
+      content    BYTEA,
+      size       BIGINT NOT NULL DEFAULT 0,
+      mime_type  TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (user_id, path)
     )
   `);
   console.log('Tables ready.');
