@@ -12,9 +12,34 @@
     background: #f0f2f5;
     min-height: 100vh;
     display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding: 40px 16px;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 16px 40px;
+  }
+
+  .top-banner {
+    width: 100%;
+    background: linear-gradient(90deg, #1a237e 0%, #3b5bdb 50%, #1a237e 100%);
+    color: white;
+    text-align: center;
+    padding: 14px 24px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    font-size: 1.1rem;
+    font-weight: 800;
+    margin-bottom: 32px;
+    box-shadow: 0 2px 12px rgba(59,91,219,0.25);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .top-banner span {
+    opacity: 0.6;
+    font-weight: 400;
+    font-size: 0.75rem;
+    margin-left: 10px;
+    letter-spacing: 2px;
+    vertical-align: middle;
   }
 
   .calendar {
@@ -24,6 +49,7 @@
     width: 100%;
     max-width: 780px;
     overflow: hidden;
+    align-self: flex-start;
   }
 
   .header {
@@ -270,9 +296,177 @@
     color: #856404;
     margin-bottom: 12px;
   }
+
+  /* ── Auth screen ── */
+  #auth-screen {
+    position: fixed; inset: 0;
+    background: linear-gradient(135deg, #3b5bdb 0%, #1a237e 100%);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200;
+  }
+  #auth-screen.hidden { display: none; }
+
+  .auth-card {
+    background: white;
+    border-radius: 20px;
+    padding: 40px 36px 36px;
+    width: 380px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  }
+  .auth-logo {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .auth-logo h1 { font-size: 1.6rem; color: #3b5bdb; font-weight: 700; }
+  .auth-logo p  { font-size: 0.8rem; color: #aaa; letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+
+  .auth-tabs {
+    display: flex;
+    background: #f0f2f5;
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 24px;
+  }
+  .auth-tab {
+    flex: 1; border: none; background: none; border-radius: 8px;
+    padding: 9px; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    color: #888; transition: all 0.18s;
+  }
+  .auth-tab.active { background: white; color: #3b5bdb; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+  .auth-form { display: none; flex-direction: column; gap: 14px; }
+  .auth-form.active { display: flex; }
+
+  .auth-form input {
+    width: 100%; border: 1.5px solid #dfe6e9; border-radius: 10px;
+    padding: 12px 14px; font-size: 0.95rem; outline: none;
+    transition: border-color 0.15s; font-family: inherit; color: #2d3436;
+  }
+  .auth-form input:focus { border-color: #3b5bdb; }
+
+  .auth-submit {
+    width: 100%; background: #3b5bdb; color: white; border: none;
+    border-radius: 10px; padding: 13px; font-size: 1rem; font-weight: 700;
+    cursor: pointer; transition: background 0.15s; margin-top: 4px;
+  }
+  .auth-submit:hover { background: #2f4ac0; }
+
+  .auth-error {
+    display: none; background: #ffeaea; border: 1px solid #ffb3b3;
+    border-radius: 8px; padding: 9px 12px; font-size: 0.83rem; color: #c0392b;
+  }
+  .auth-success {
+    display: none; background: #eafaf1; border: 1px solid #a9dfbf;
+    border-radius: 8px; padding: 9px 12px; font-size: 0.83rem; color: #1e8449;
+  }
+
+  .logout-btn {
+    background: rgba(255,255,255,0.15); border: none; color: white;
+    border-radius: 8px; padding: 7px 14px; font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; transition: background 0.15s; white-space: nowrap;
+  }
+  .logout-btn:hover { background: rgba(255,255,255,0.28); }
+
+  .user-info {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+
+  /* ── Upload ── */
+  .upload-btn {
+    background: #f0faf5;
+    color: #27ae60;
+    border: 1.5px solid #a9dfbf;
+    border-radius: 8px;
+    padding: 9px 18px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+  }
+  .upload-btn:hover { background: #d5f5e3; }
+
+  .drop-zone {
+    border: 2px dashed #c5cae9;
+    border-radius: 12px;
+    padding: 28px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    color: #888;
+    font-size: 0.88rem;
+    margin-bottom: 10px;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: #3b5bdb;
+    background: #f0f2ff;
+    color: #3b5bdb;
+  }
+  .drop-zone .drop-icon { font-size: 2rem; margin-bottom: 6px; }
+
+  .file-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 10px; border-radius: 8px; background: #f7f8ff;
+    margin-bottom: 5px; font-size: 0.83rem; gap: 8px;
+  }
+  .file-item .f-info { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+  .file-item .f-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #2d3436; }
+  .file-item .f-meta { font-size: 0.72rem; color: #888; margin-top: 1px; }
+  .file-item .f-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .file-item .f-actions a, .file-item .f-actions button {
+    background: none; border: none; cursor: pointer;
+    font-size: 0.85rem; padding: 2px 5px; border-radius: 5px;
+    text-decoration: none;
+  }
+  .file-item .f-dl  { color: #3b5bdb; background: #e8eaf6; }
+  .file-item .f-del { color: #e05252; background: #ffeaea; }
+  .file-item .f-dl:hover  { background: #c5cae9; }
+  .file-item .f-del:hover { background: #ffb3b3; }
+
+  .day-clip {
+    font-size: 0.6rem; color: #27ae60; position: absolute;
+    top: 6px; right: 6px; line-height: 1;
+  }
 </style>
 </head>
 <body>
+
+<div class="top-banner">Watson AI <span>Calendar</span></div>
+
+<!-- Auth Screen -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <h1>AI Watson</h1>
+      <p>Calendar</p>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login">Login</button>
+      <button class="auth-tab" data-tab="register">Register</button>
+    </div>
+
+    <!-- Login Form -->
+    <form class="auth-form active" id="login-form" autocomplete="on">
+      <div class="auth-error" id="login-error"></div>
+      <input type="email" id="login-email" placeholder="Email" required autocomplete="email">
+      <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
+      <button type="submit" class="auth-submit">Login</button>
+    </form>
+
+    <!-- Register Form -->
+    <form class="auth-form" id="register-form" autocomplete="off">
+      <div class="auth-error" id="register-error"></div>
+      <div class="auth-success" id="register-success"></div>
+      <input type="text" id="reg-name" placeholder="Full name" required>
+      <input type="email" id="reg-email" placeholder="Email" required autocomplete="email">
+      <input type="password" id="reg-password" placeholder="Password (min 6 chars)" required minlength="6">
+      <input type="password" id="reg-confirm" placeholder="Confirm password" required>
+      <button type="submit" class="auth-submit">Create Account</button>
+    </form>
+  </div>
+</div>
 
 <div class="calendar">
   <div class="header">
@@ -281,11 +475,16 @@
       <div class="year" id="year-label"></div>
       <h1 id="month-label"></h1>
       <div style="font-size:0.72rem;opacity:0.6;letter-spacing:1px;text-transform:uppercase;margin-top:2px">AI Watson</div>
+      <div id="header-user" style="font-size:0.75rem;opacity:0.8;margin-top:3px"></div>
     </div>
-    <button class="nav-btn" id="next">&#8250;</button>
+    <div class="user-info">
+      <button class="nav-btn" id="next">&#8250;</button>
+      <button class="logout-btn" id="logout-btn" style="margin-top:4px;font-size:0.7rem;padding:4px 10px">Logout</button>
+    </div>
   </div>
   <div class="toolbar" style="gap:10px">
     <button class="reminder-btn" id="open-reminder-modal">&#128276; Reminders</button>
+    <button class="upload-btn" id="open-upload-modal">&#128206; Upload File</button>
     <button class="add-event-btn" id="open-add-modal">&#43; Add Event</button>
   </div>
   <div class="weekdays">
@@ -316,6 +515,25 @@
   </div>
 </div>
 
+<!-- Upload Modal -->
+<div class="modal-overlay" id="upload-modal">
+  <div class="modal" style="width:420px">
+    <h2>&#128206; Upload File</h2>
+    <label for="upload-date">Attach to date</label>
+    <input type="date" id="upload-date" style="margin-bottom:14px">
+    <div class="drop-zone" id="drop-zone">
+      <div class="drop-icon">&#128196;</div>
+      <div>Drag &amp; drop a file here, or <strong>click to browse</strong></div>
+      <div style="font-size:0.75rem;margin-top:4px;color:#aaa">Max 2 MB per file</div>
+    </div>
+    <input type="file" id="file-input" style="display:none" multiple>
+    <div class="event-list" id="upload-file-list" style="max-height:160px"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="upload-modal-close">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Add Event Modal -->
 <div class="modal-overlay" id="add-modal">
   <div class="modal">
@@ -337,6 +555,10 @@
     <h2 id="modal-title"></h2>
     <div class="event-list" id="event-list"></div>
     <input type="text" id="event-input" placeholder="Add event..." maxlength="60">
+    <div id="day-files-section" style="margin-top:10px;display:none">
+      <div style="font-size:0.78rem;font-weight:700;color:#636e72;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Attachments</div>
+      <div id="day-file-list"></div>
+    </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" id="modal-close">Close</button>
       <button class="btn btn-primary" id="modal-add">Add</button>
@@ -417,6 +639,16 @@
       }
       cell.appendChild(evList);
 
+      // paperclip indicator if files attached
+      const files = getFiles(viewYear, viewMonth);
+      if ((files[d] || []).length) {
+        const clip = document.createElement('div');
+        clip.className = 'day-clip';
+        clip.title = `${files[d].length} file(s)`;
+        clip.textContent = '📎';
+        cell.appendChild(clip);
+      }
+
       cell.addEventListener('click', () => openModal(d));
       container.appendChild(cell);
     }
@@ -429,6 +661,7 @@
       date.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
     document.getElementById('event-input').value = '';
     renderEventList();
+    renderDayFiles(day);
     document.getElementById('modal').classList.add('open');
     document.getElementById('event-input').focus();
   }
@@ -667,6 +900,229 @@
 
   // Reschedule unfired reminders on load
   getReminders().filter(r => !r.fired).forEach(scheduleReminder);
+
+  // ── Files ──────────────────────────────────────────────────
+  function filesKey(y, m) { return `cal_files_${y}_${m}`; }
+  function getFiles(y, m) {
+    const raw = localStorage.getItem(filesKey(y, m));
+    return raw ? JSON.parse(raw) : {};
+  }
+  function saveFiles(y, m, data) { localStorage.setItem(filesKey(y, m), JSON.stringify(data)); }
+
+  function formatBytes(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+    return (b / 1048576).toFixed(1) + ' MB';
+  }
+
+  function renderDayFiles(day) {
+    const files = getFiles(viewYear, viewMonth);
+    const list  = document.getElementById('day-file-list');
+    const section = document.getElementById('day-files-section');
+    const dayFiles = files[day] || [];
+    list.innerHTML = '';
+    section.style.display = dayFiles.length ? 'block' : 'none';
+    dayFiles.forEach((f, i) => {
+      const item = document.createElement('div');
+      item.className = 'file-item';
+      item.innerHTML = `
+        <div class="f-info">
+          <div class="f-name" title="${f.name}">${f.name}</div>
+          <div class="f-meta">${f.type || 'file'} &middot; ${formatBytes(f.size)}</div>
+        </div>
+        <div class="f-actions">
+          <a class="f-dl" href="${f.data}" download="${f.name}" title="Download">&#11123;</a>
+          <button class="f-del" title="Delete" data-i="${i}">&#10005;</button>
+        </div>`;
+      item.querySelector('.f-del').addEventListener('click', () => {
+        const fs = getFiles(viewYear, viewMonth);
+        fs[day].splice(i, 1);
+        if (!fs[day].length) delete fs[day];
+        saveFiles(viewYear, viewMonth, fs);
+        renderDayFiles(day);
+        render();
+      });
+      list.appendChild(item);
+    });
+  }
+
+  function renderUploadList(dateVal) {
+    if (!dateVal) return;
+    const [y, m, d] = dateVal.split('-').map(Number);
+    const files = getFiles(y, m - 1);
+    const list  = document.getElementById('upload-file-list');
+    list.innerHTML = '';
+    (files[d] || []).forEach((f, i) => {
+      const item = document.createElement('div');
+      item.className = 'file-item';
+      item.innerHTML = `
+        <div class="f-info">
+          <div class="f-name" title="${f.name}">${f.name}</div>
+          <div class="f-meta">${f.type || 'file'} &middot; ${formatBytes(f.size)}</div>
+        </div>
+        <div class="f-actions">
+          <a class="f-dl" href="${f.data}" download="${f.name}" title="Download">&#11123;</a>
+          <button class="f-del" title="Delete" data-i="${i}">&#10005;</button>
+        </div>`;
+      item.querySelector('.f-del').addEventListener('click', () => {
+        const fs = getFiles(y, m - 1);
+        fs[d].splice(i, 1);
+        if (!fs[d].length) delete fs[d];
+        saveFiles(y, m - 1, fs);
+        renderUploadList(dateVal);
+        render();
+      });
+      list.appendChild(item);
+    });
+  }
+
+  function handleFiles(fileList) {
+    const dateVal = document.getElementById('upload-date').value;
+    if (!dateVal) { alert('Please select a date first.'); return; }
+    const [y, m, d] = dateVal.split('-').map(Number);
+    const MAX = 2 * 1024 * 1024;
+    Array.from(fileList).forEach(file => {
+      if (file.size > MAX) { alert(`"${file.name}" exceeds 2 MB and was skipped.`); return; }
+      const reader = new FileReader();
+      reader.onload = e => {
+        const fs = getFiles(y, m - 1);
+        if (!fs[d]) fs[d] = [];
+        fs[d].push({ name: file.name, type: file.type, size: file.size, data: e.target.result });
+        try {
+          saveFiles(y, m - 1, fs);
+        } catch {
+          alert('Storage full — file could not be saved.');
+          return;
+        }
+        renderUploadList(dateVal);
+        render();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Upload modal open
+  document.getElementById('open-upload-modal').addEventListener('click', () => {
+    const today = new Date();
+    const yyyy  = today.getFullYear();
+    const mm    = String(today.getMonth() + 1).padStart(2, '0');
+    const dd    = String(today.getDate()).padStart(2, '0');
+    document.getElementById('upload-date').value = `${yyyy}-${mm}-${dd}`;
+    renderUploadList(`${yyyy}-${mm}-${dd}`);
+    document.getElementById('upload-modal').classList.add('open');
+  });
+
+  document.getElementById('upload-date').addEventListener('change', e => renderUploadList(e.target.value));
+  document.getElementById('upload-modal-close').addEventListener('click', () => document.getElementById('upload-modal').classList.remove('open'));
+  document.getElementById('upload-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('upload-modal')) document.getElementById('upload-modal').classList.remove('open');
+  });
+
+  // Drop zone
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+  dropZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => { handleFiles(e.target.files); fileInput.value = ''; });
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('drag-over');
+    handleFiles(e.dataTransfer.files);
+  });
+
+  // ── Auth ───────────────────────────────────────────────────
+  const AUTH_KEY = 'cal_session';
+  const USERS_KEY = 'cal_users';
+
+  function getUsers() {
+    const raw = localStorage.getItem(USERS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }
+  function saveUsers(u) { localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
+  function getSession() {
+    const raw = localStorage.getItem(AUTH_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }
+  function saveSession(user) { localStorage.setItem(AUTH_KEY, JSON.stringify(user)); }
+  function clearSession() { localStorage.removeItem(AUTH_KEY); }
+
+  function showAuthError(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg; el.style.display = 'block';
+  }
+  function hideAuthMessages() {
+    ['login-error','register-error','register-success'].forEach(id => {
+      document.getElementById(id).style.display = 'none';
+    });
+  }
+
+  function enterApp(user) {
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('header-user').textContent = user.name || user.email;
+  }
+
+  // Tab switching
+  document.querySelectorAll('.auth-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(`${tab.dataset.tab}-form`).classList.add('active');
+      hideAuthMessages();
+    });
+  });
+
+  // Login
+  document.getElementById('login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    hideAuthMessages();
+    const email    = document.getElementById('login-email').value.trim().toLowerCase();
+    const password = document.getElementById('login-password').value;
+
+    // TODO: replace with → fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password }) })
+    const users = getUsers();
+    const user  = users.find(u => u.email === email && u.password === btoa(password));
+    if (!user) { showAuthError('login-error', 'Invalid email or password.'); return; }
+    saveSession(user);
+    enterApp(user);
+  });
+
+  // Register
+  document.getElementById('register-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    hideAuthMessages();
+    const name     = document.getElementById('reg-name').value.trim();
+    const email    = document.getElementById('reg-email').value.trim().toLowerCase();
+    const password = document.getElementById('reg-password').value;
+    const confirm  = document.getElementById('reg-confirm').value;
+
+    if (password !== confirm) { showAuthError('register-error', 'Passwords do not match.'); return; }
+    if (password.length < 6)  { showAuthError('register-error', 'Password must be at least 6 characters.'); return; }
+
+    // TODO: replace with → fetch('/api/register', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, email, password }) })
+    const users = getUsers();
+    if (users.find(u => u.email === email)) { showAuthError('register-error', 'An account with that email already exists.'); return; }
+    const user = { id: Date.now(), name, email, password: btoa(password) };
+    users.push(user);
+    saveUsers(users);
+    const success = document.getElementById('register-success');
+    success.textContent = 'Account created! You can now log in.';
+    success.style.display = 'block';
+    document.getElementById('register-form').reset();
+  });
+
+  // Logout
+  document.getElementById('logout-btn').addEventListener('click', () => {
+    clearSession();
+    document.getElementById('header-user').textContent = '';
+    document.getElementById('auth-screen').classList.remove('hidden');
+    document.getElementById('login-form').reset();
+    hideAuthMessages();
+  });
+
+  // Auto-login if session exists
+  const session = getSession();
+  if (session) { enterApp(session); }
 
   render();
 </script>
