@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Watson</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f0f2f5;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 16px;
+  }
+
+  .calendar {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    width: 100%;
+    max-width: 780px;
+    overflow: hidden;
+  }
+
+  .header {
+    background: #3b5bdb;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 28px;
+  }
+
+  .header h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: 0.5px; }
+  .header .year { opacity: 0.7; font-size: 1rem; margin-top: 2px; }
+
+  .nav-btn {
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: white;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .nav-btn:hover { background: rgba(255,255,255,0.28); }
+
+  .weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: #eef0fb;
+    padding: 0 8px;
+  }
+  .weekdays span {
+    text-align: center;
+    padding: 10px 0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #7986cb;
+  }
+  .weekdays span:last-child, .weekdays span:nth-last-child(2) { color: #e05252; }
+
+  .days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    padding: 8px;
+    gap: 4px;
+  }
+
+  .day {
+    min-height: 82px;
+    border-radius: 10px;
+    padding: 8px 6px 6px;
+    cursor: pointer;
+    transition: background 0.12s;
+    position: relative;
+  }
+  .day:hover { background: #f0f2ff; }
+  .day.empty { cursor: default; pointer-events: none; }
+  .day.weekend .day-num { color: #e05252; }
+  .day.today .day-num {
+    background: #3b5bdb;
+    color: white;
+    border-radius: 50%;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .day-num {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #2d3436;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 4px;
+  }
+
+  .events { display: flex; flex-direction: column; gap: 2px; }
+  .event-pill {
+    font-size: 0.68rem;
+    background: #e8eaf6;
+    color: #3b5bdb;
+    border-radius: 4px;
+    padding: 1px 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+  }
+  .event-pill:hover { background: #c5cae9; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: white;
+    border-radius: 14px;
+    padding: 28px;
+    width: 360px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  }
+  .modal h2 { font-size: 1.1rem; color: #2d3436; margin-bottom: 16px; }
+
+  .modal input[type="text"] {
+    width: 100%;
+    border: 1.5px solid #dfe6e9;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.15s;
+    margin-bottom: 12px;
+  }
+  .modal input[type="text"]:focus { border-color: #3b5bdb; }
+
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .btn {
+    border: none; border-radius: 8px; padding: 9px 18px;
+    font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn-primary { background: #3b5bdb; color: white; }
+  .btn-ghost { background: #f0f0f0; color: #555; }
+  .btn-danger { background: #e05252; color: white; }
+
+  .event-list { margin: 14px 0; max-height: 160px; overflow-y: auto; }
+  .event-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 10px; border-radius: 7px; font-size: 0.88rem;
+    background: #f7f8ff; margin-bottom: 5px; color: #2d3436;
+  }
+  .event-item button {
+    background: none; border: none; color: #aaa; cursor: pointer;
+    font-size: 1rem; line-height: 1; padding: 0 2px;
+  }
+  .event-item button:hover { color: #e05252; }
+
+  .toolbar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 10px 16px 4px;
+    background: white;
+  }
+  .add-event-btn {
+    background: #3b5bdb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 18px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+  }
+  .add-event-btn:hover { background: #2f4ac0; }
+
+  .modal input[type="date"] {
+    width: 100%;
+    border: 1.5px solid #dfe6e9;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.15s;
+    margin-bottom: 10px;
+    font-family: inherit;
+    color: #2d3436;
+  }
+  .modal input[type="date"]:focus { border-color: #3b5bdb; }
+  .modal label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #636e72;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 5px;
+  }
+
+  .modal input[type="time"] {
+    width: 100%;
+    border: 1.5px solid #dfe6e9;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.15s;
+    margin-bottom: 10px;
+    font-family: inherit;
+    color: #2d3436;
+  }
+  .modal input[type="time"]:focus { border-color: #3b5bdb; }
+
+  .reminder-btn {
+    background: #f0f4ff;
+    color: #3b5bdb;
+    border: 1.5px solid #c5cae9;
+    border-radius: 8px;
+    padding: 9px 18px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+  }
+  .reminder-btn:hover { background: #dde3ff; }
+
+  .reminder-item {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 8px 10px; border-radius: 7px; font-size: 0.85rem;
+    background: #f7f8ff; margin-bottom: 6px; color: #2d3436; gap: 8px;
+  }
+  .reminder-item .r-info { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+  .reminder-item .r-msg { font-weight: 600; }
+  .reminder-item .r-time { font-size: 0.75rem; color: #7986cb; }
+  .reminder-item .r-fired { font-size: 0.72rem; color: #27ae60; font-style: italic; }
+  .reminder-item button {
+    background: none; border: none; color: #aaa; cursor: pointer;
+    font-size: 1rem; line-height: 1; padding: 0 2px; flex-shrink: 0;
+  }
+  .reminder-item button:hover { color: #e05252; }
+
+  .notif-banner {
+    display: none;
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.82rem;
+    color: #856404;
+    margin-bottom: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="calendar">
+  <div class="header">
+    <button class="nav-btn" id="prev">&#8249;</button>
+    <div style="text-align:center">
+      <div class="year" id="year-label"></div>
+      <h1 id="month-label"></h1>
+      <div style="font-size:0.72rem;opacity:0.6;letter-spacing:1px;text-transform:uppercase;margin-top:2px">AI Watson</div>
+    </div>
+    <button class="nav-btn" id="next">&#8250;</button>
+  </div>
+  <div class="toolbar" style="gap:10px">
+    <button class="reminder-btn" id="open-reminder-modal">&#128276; Reminders</button>
+    <button class="add-event-btn" id="open-add-modal">&#43; Add Event</button>
+  </div>
+  <div class="weekdays">
+    <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span>
+    <span>Sat</span><span>Sun</span>
+  </div>
+  <div class="days" id="days"></div>
+</div>
+
+<!-- Reminder Modal -->
+<div class="modal-overlay" id="reminder-modal">
+  <div class="modal" style="width:400px">
+    <h2>&#128276; Reminders</h2>
+    <div class="notif-banner" id="notif-banner">
+      Notifications are blocked. <a href="#" id="notif-link" style="color:#3b5bdb">Enable them</a> in your browser settings to receive alerts.
+    </div>
+    <div class="event-list" id="reminder-list" style="max-height:180px"></div>
+    <label for="r-date">Date</label>
+    <input type="date" id="r-date">
+    <label for="r-time">Time</label>
+    <input type="time" id="r-time">
+    <label for="r-msg">Message</label>
+    <input type="text" id="r-msg" placeholder="Reminder message..." maxlength="80">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="reminder-modal-close">Close</button>
+      <button class="btn btn-primary" id="reminder-save">Set Reminder</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Event Modal -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <h2>Add Event</h2>
+    <label for="add-date-input">Date</label>
+    <input type="date" id="add-date-input">
+    <label for="add-text-input">Event</label>
+    <input type="text" id="add-text-input" placeholder="Event name..." maxlength="60">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="add-modal-close">Cancel</button>
+      <button class="btn btn-primary" id="add-modal-save">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- Day Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2 id="modal-title"></h2>
+    <div class="event-list" id="event-list"></div>
+    <input type="text" id="event-input" placeholder="Add event..." maxlength="60">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="modal-close">Close</button>
+      <button class="btn btn-primary" id="modal-add">Add</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const MONTHS = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+
+  let current = new Date();
+  let viewYear = current.getFullYear();
+  let viewMonth = current.getMonth();
+  let selectedDate = null;
+
+  function storageKey(y, m) { return `cal_${y}_${m}`; }
+
+  function getEvents(y, m) {
+    const raw = localStorage.getItem(storageKey(y, m));
+    return raw ? JSON.parse(raw) : {};
+  }
+
+  function saveEvents(y, m, data) {
+    localStorage.setItem(storageKey(y, m), JSON.stringify(data));
+  }
+
+  function render() {
+    document.getElementById('month-label').textContent = MONTHS[viewMonth];
+    document.getElementById('year-label').textContent = viewYear;
+
+    const container = document.getElementById('days');
+    container.innerHTML = '';
+
+    const firstDay = new Date(viewYear, viewMonth, 1).getDay(); // 0=Sun
+    const offset = (firstDay === 0 ? 6 : firstDay - 1); // shift to Mon=0
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+    const today = new Date();
+    const events = getEvents(viewYear, viewMonth);
+
+    for (let i = 0; i < offset; i++) {
+      const empty = document.createElement('div');
+      empty.className = 'day empty';
+      container.appendChild(empty);
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const cell = document.createElement('div');
+      cell.className = 'day';
+
+      const dow = new Date(viewYear, viewMonth, d).getDay(); // 0=Sun, 6=Sat
+      if (dow === 0 || dow === 6) cell.classList.add('weekend');
+
+      if (d === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear()) {
+        cell.classList.add('today');
+      }
+
+      const numEl = document.createElement('div');
+      numEl.className = 'day-num';
+      numEl.textContent = d;
+      cell.appendChild(numEl);
+
+      const evList = document.createElement('div');
+      evList.className = 'events';
+      (events[d] || []).slice(0, 3).forEach(ev => {
+        const pill = document.createElement('div');
+        pill.className = 'event-pill';
+        pill.textContent = ev;
+        pill.title = ev;
+        pill.addEventListener('click', e => { e.stopPropagation(); openModal(d); });
+        evList.appendChild(pill);
+      });
+      if ((events[d] || []).length > 3) {
+        const more = document.createElement('div');
+        more.style.cssText = 'font-size:0.65rem;color:#888;padding:1px 5px';
+        more.textContent = `+${events[d].length - 3} more`;
+        evList.appendChild(more);
+      }
+      cell.appendChild(evList);
+
+      cell.addEventListener('click', () => openModal(d));
+      container.appendChild(cell);
+    }
+  }
+
+  function openModal(day) {
+    selectedDate = day;
+    const date = new Date(viewYear, viewMonth, day);
+    document.getElementById('modal-title').textContent =
+      date.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+    document.getElementById('event-input').value = '';
+    renderEventList();
+    document.getElementById('modal').classList.add('open');
+    document.getElementById('event-input').focus();
+  }
+
+  function renderEventList() {
+    const events = getEvents(viewYear, viewMonth);
+    const list = document.getElementById('event-list');
+    list.innerHTML = '';
+    (events[selectedDate] || []).forEach((ev, i) => {
+      const item = document.createElement('div');
+      item.className = 'event-item';
+      const span = document.createElement('span');
+      span.textContent = ev;
+      const del = document.createElement('button');
+      del.textContent = '×';
+      del.title = 'Remove';
+      del.addEventListener('click', () => {
+        const ev2 = getEvents(viewYear, viewMonth);
+        ev2[selectedDate].splice(i, 1);
+        if (!ev2[selectedDate].length) delete ev2[selectedDate];
+        saveEvents(viewYear, viewMonth, ev2);
+        renderEventList();
+        render();
+      });
+      item.appendChild(span);
+      item.appendChild(del);
+      list.appendChild(item);
+    });
+  }
+
+  function addEvent() {
+    const input = document.getElementById('event-input');
+    const text = input.value.trim();
+    if (!text) return;
+    const events = getEvents(viewYear, viewMonth);
+    if (!events[selectedDate]) events[selectedDate] = [];
+    events[selectedDate].push(text);
+    saveEvents(viewYear, viewMonth, events);
+    input.value = '';
+    renderEventList();
+    render();
+  }
+
+  document.getElementById('prev').addEventListener('click', () => {
+    viewMonth--;
+    if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+    render();
+  });
+
+  document.getElementById('next').addEventListener('click', () => {
+    viewMonth++;
+    if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+    render();
+  });
+
+  document.getElementById('modal-close').addEventListener('click', () => {
+    document.getElementById('modal').classList.remove('open');
+  });
+
+  document.getElementById('modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal')) {
+      document.getElementById('modal').classList.remove('open');
+    }
+  });
+
+  document.getElementById('modal-add').addEventListener('click', addEvent);
+
+  document.getElementById('event-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addEvent();
+  });
+
+  // Add Event button modal
+  document.getElementById('open-add-modal').addEventListener('click', () => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    document.getElementById('add-date-input').value = `${yyyy}-${mm}-${dd}`;
+    document.getElementById('add-text-input').value = '';
+    document.getElementById('add-modal').classList.add('open');
+    document.getElementById('add-text-input').focus();
+  });
+
+  document.getElementById('add-modal-close').addEventListener('click', () => {
+    document.getElementById('add-modal').classList.remove('open');
+  });
+
+  document.getElementById('add-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('add-modal')) {
+      document.getElementById('add-modal').classList.remove('open');
+    }
+  });
+
+  function saveFromAddModal() {
+    const dateVal = document.getElementById('add-date-input').value;
+    const text = document.getElementById('add-text-input').value.trim();
+    if (!dateVal || !text) return;
+    const [y, m, d] = dateVal.split('-').map(Number);
+    const events = getEvents(y, m - 1);
+    if (!events[d]) events[d] = [];
+    events[d].push(text);
+    saveEvents(y, m - 1, events);
+    if (y === viewYear && m - 1 === viewMonth) render();
+    document.getElementById('add-modal').classList.remove('open');
+  }
+
+  document.getElementById('add-modal-save').addEventListener('click', saveFromAddModal);
+  document.getElementById('add-text-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') saveFromAddModal();
+  });
+
+  // ── Reminders ──────────────────────────────────────────────
+  const REMINDER_KEY = 'cal_reminders';
+  const reminderTimers = {};
+
+  function getReminders() {
+    const raw = localStorage.getItem(REMINDER_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }
+
+  function saveReminders(list) {
+    localStorage.setItem(REMINDER_KEY, JSON.stringify(list));
+  }
+
+  function scheduleReminder(r) {
+    const fireAt = new Date(`${r.date}T${r.time}`).getTime();
+    const delay = fireAt - Date.now();
+    if (delay <= 0 || r.fired) return;
+    reminderTimers[r.id] = setTimeout(() => {
+      if (Notification.permission === 'granted') {
+        new Notification('AI Watson Reminder', { body: r.msg, icon: '' });
+      } else {
+        alert(`Reminder: ${r.msg}`);
+      }
+      const list = getReminders();
+      const target = list.find(x => x.id === r.id);
+      if (target) { target.fired = true; saveReminders(list); }
+      if (document.getElementById('reminder-modal').classList.contains('open')) renderReminderList();
+    }, delay);
+  }
+
+  function renderReminderList() {
+    const list = getReminders();
+    const el = document.getElementById('reminder-list');
+    el.innerHTML = '';
+    if (!list.length) {
+      el.innerHTML = '<div style="color:#aaa;font-size:0.83rem;padding:6px 2px">No reminders set.</div>';
+      return;
+    }
+    [...list].reverse().forEach(r => {
+      const item = document.createElement('div');
+      item.className = 'reminder-item';
+      const info = document.createElement('div');
+      info.className = 'r-info';
+      const msg = document.createElement('div');
+      msg.className = 'r-msg';
+      msg.textContent = r.msg;
+      const time = document.createElement('div');
+      time.className = 'r-time';
+      time.textContent = new Date(`${r.date}T${r.time}`).toLocaleString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'
+      });
+      info.appendChild(msg);
+      info.appendChild(time);
+      if (r.fired) {
+        const fired = document.createElement('div');
+        fired.className = 'r-fired';
+        fired.textContent = 'Sent';
+        info.appendChild(fired);
+      }
+      const del = document.createElement('button');
+      del.textContent = '×';
+      del.title = 'Delete';
+      del.addEventListener('click', () => {
+        clearTimeout(reminderTimers[r.id]);
+        saveReminders(getReminders().filter(x => x.id !== r.id));
+        renderReminderList();
+      });
+      item.appendChild(info);
+      item.appendChild(del);
+      el.appendChild(item);
+    });
+  }
+
+  function openReminderModal() {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + 10);
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mi = String(now.getMinutes()).padStart(2, '0');
+    document.getElementById('r-date').value = `${yyyy}-${mm}-${dd}`;
+    document.getElementById('r-time').value = `${hh}:${mi}`;
+    document.getElementById('r-msg').value = '';
+    const banner = document.getElementById('notif-banner');
+    banner.style.display = Notification.permission === 'denied' ? 'block' : 'none';
+    renderReminderList();
+    document.getElementById('reminder-modal').classList.add('open');
+    document.getElementById('r-msg').focus();
+  }
+
+  async function setReminder() {
+    const date = document.getElementById('r-date').value;
+    const time = document.getElementById('r-time').value;
+    const msg = document.getElementById('r-msg').value.trim();
+    if (!date || !time || !msg) return;
+    if (new Date(`${date}T${time}`) <= new Date()) {
+      alert('Please choose a future date and time.');
+      return;
+    }
+    if (Notification.permission === 'default') {
+      await Notification.requestPermission();
+    }
+    const r = { id: Date.now(), date, time, msg, fired: false };
+    const list = getReminders();
+    list.push(r);
+    saveReminders(list);
+    scheduleReminder(r);
+    document.getElementById('r-msg').value = '';
+    renderReminderList();
+  }
+
+  document.getElementById('open-reminder-modal').addEventListener('click', openReminderModal);
+  document.getElementById('reminder-modal-close').addEventListener('click', () => {
+    document.getElementById('reminder-modal').classList.remove('open');
+  });
+  document.getElementById('reminder-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('reminder-modal'))
+      document.getElementById('reminder-modal').classList.remove('open');
+  });
+  document.getElementById('reminder-save').addEventListener('click', setReminder);
+  document.getElementById('r-msg').addEventListener('keydown', e => {
+    if (e.key === 'Enter') setReminder();
+  });
+
+  // Reschedule unfired reminders on load
+  getReminders().filter(r => !r.fired).forEach(scheduleReminder);
+
+  render();
+</script>
+</body>
+</html>
