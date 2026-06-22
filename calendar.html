@@ -709,11 +709,21 @@
     const text = input.value.trim();
     if (!text) return;
     input.value = '';
-    await fetch('/api/events', {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ year: viewYear, month: viewMonth, day: selectedDate, title: text })
-    });
+    try {
+      const res = await fetch('/api/events', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ year: viewYear, month: viewMonth, day: selectedDate, title: text })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert('Could not save event: ' + (err.error || res.status));
+        return;
+      }
+    } catch {
+      alert('Could not reach server. Is it running?');
+      return;
+    }
     await render();
     renderEventList();
   }
@@ -773,11 +783,21 @@
     const text = document.getElementById('add-text-input').value.trim();
     if (!dateVal || !text) return;
     const [y, m, d] = dateVal.split('-').map(Number);
-    await fetch('/api/events', {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ year: y, month: m - 1, day: d, title: text })
-    });
+    try {
+      const res = await fetch('/api/events', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ year: y, month: m - 1, day: d, title: text })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert('Could not save event: ' + (err.error || res.status));
+        return;
+      }
+    } catch {
+      alert('Could not reach server. Is it running?');
+      return;
+    }
     if (y === viewYear && m - 1 === viewMonth) await render();
     document.getElementById('add-modal').classList.remove('open');
   }
