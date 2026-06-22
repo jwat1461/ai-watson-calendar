@@ -1079,12 +1079,15 @@
     const email    = document.getElementById('login-email').value.trim().toLowerCase();
     const password = document.getElementById('login-password').value;
 
-    // TODO: replace with → fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password }) })
-    const users = getUsers();
-    const user  = users.find(u => u.email === email && u.password === btoa(password));
-    if (!user) { showAuthError('login-error', 'Invalid email or password.'); return; }
-    saveSession(user);
-    enterApp(user);
+    try {
+      const res  = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password }) });
+      const data = await res.json();
+      if (!res.ok) { showAuthError('login-error', data.error || 'Login failed.'); return; }
+      saveSession({ token: data.token, name: data.name, email: data.email });
+      enterApp({ name: data.name, email: data.email });
+    } catch {
+      showAuthError('login-error', 'Could not reach server. Is it running?');
+    }
   });
 
   // Register
@@ -1099,16 +1102,17 @@
     if (password !== confirm) { showAuthError('register-error', 'Passwords do not match.'); return; }
     if (password.length < 6)  { showAuthError('register-error', 'Password must be at least 6 characters.'); return; }
 
-    // TODO: replace with → fetch('/api/register', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, email, password }) })
-    const users = getUsers();
-    if (users.find(u => u.email === email)) { showAuthError('register-error', 'An account with that email already exists.'); return; }
-    const user = { id: Date.now(), name, email, password: btoa(password) };
-    users.push(user);
-    saveUsers(users);
-    const success = document.getElementById('register-success');
-    success.textContent = 'Account created! You can now log in.';
-    success.style.display = 'block';
-    document.getElementById('register-form').reset();
+    try {
+      const res  = await fetch('/api/register', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, email, password }) });
+      const data = await res.json();
+      if (!res.ok) { showAuthError('register-error', data.error || 'Registration failed.'); return; }
+      const success = document.getElementById('register-success');
+      success.textContent = data.message || 'Account created! You can now log in.';
+      success.style.display = 'block';
+      document.getElementById('register-form').reset();
+    } catch {
+      showAuthError('register-error', 'Could not reach server. Is it running?');
+    }
   });
 
   // Logout
