@@ -575,18 +575,33 @@
   let viewMonth = current.getMonth();
   let selectedDate = null;
 
-  function storageKey(y, m) { return `cal_${y}_${m}`; }
+  let eventsCache = {};
 
-  function getEvents(y, m) {
-    const raw = localStorage.getItem(storageKey(y, m));
-    return raw ? JSON.parse(raw) : {};
+  function authHeaders() {
+    const s = getSession();
+    return s ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s.token}` }
+             : { 'Content-Type': 'application/json' };
   }
 
-  function saveEvents(y, m, data) {
-    localStorage.setItem(storageKey(y, m), JSON.stringify(data));
+  async function fetchEvents(y, m) {
+    const key = `${y}_${m}`;
+    try {
+      const res = await fetch(`/api/events?year=${y}&month=${m}`, { headers: authHeaders() });
+      if (!res.ok) { eventsCache[key] = {}; return {}; }
+      const rows = await res.json();
+      const map = {};
+      rows.forEach(r => {
+        if (!map[r.day]) map[r.day] = [];
+        map[r.day].push({ id: r.id, title: r.title });
+      });
+      eventsCache[key] = map;
+      return map;
+    } catch { eventsCache[key] = {}; return {}; }
   }
 
-  function render() {
+  function getEventsCache(y, m) { return eventsCache[`${y}_${m}`] || {}; }
+
+  async function render() {
     document.getElementById('month-label').textContent = MONTHS[viewMonth];
     document.getElementById('year-label').textContent = viewYear;
 
@@ -597,7 +612,7 @@
     const offset = (firstDay === 0 ? 6 : firstDay - 1); // shift to Mon=0
     const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
     const today = new Date();
-    const events = getEvents(viewYear, viewMonth);
+    const events = await fetchEvents(viewYear, viewMonth);
 
     for (let i = 0; i < offset; i++) {
       const empty = document.createElement('div');
@@ -626,8 +641,8 @@
       (events[d] || []).slice(0, 3).forEach(ev => {
         const pill = document.createElement('div');
         pill.className = 'event-pill';
-        pill.textContent = ev;
-        pill.title = ev;
+        pill.textContent = ev.title;
+        pill.title = ev.title;
         pill.addEventListener('click', e => { e.stopPropagation(); openModal(d); });
         evList.appendChild(pill);
       });
@@ -667,24 +682,21 @@
   }
 
   function renderEventList() {
-    const events = getEvents(viewYear, viewMonth);
+    const events = getEventsCache(viewYear, viewMonth);
     const list = document.getElementById('event-list');
     list.innerHTML = '';
-    (events[selectedDate] || []).forEach((ev, i) => {
+    (events[selectedDate] || []).forEach(ev => {
       const item = document.createElement('div');
       item.className = 'event-item';
       const span = document.createElement('span');
-      span.textContent = ev;
+      span.textContent = ev.title;
       const del = document.createElement('button');
       del.textContent = '×';
       del.title = 'Remove';
-      del.addEventListener('click', () => {
-        const ev2 = getEvents(viewYear, viewMonth);
-        ev2[selectedDate].splice(i, 1);
-        if (!ev2[selectedDate].length) delete ev2[selectedDate];
-        saveEvents(viewYear, viewMonth, ev2);
+      del.addEventListener('click', async () => {
+        await fetch(`/api/events/${ev.id}`, { method: 'DELETE', headers: authHeaders() });
+        await render();
         renderEventList();
-        render();
       });
       item.appendChild(span);
       item.appendChild(del);
@@ -692,17 +704,18 @@
     });
   }
 
-  function addEvent() {
+  async function addEvent() {
     const input = document.getElementById('event-input');
     const text = input.value.trim();
     if (!text) return;
-    const events = getEvents(viewYear, viewMonth);
-    if (!events[selectedDate]) events[selectedDate] = [];
-    events[selectedDate].push(text);
-    saveEvents(viewYear, viewMonth, events);
     input.value = '';
+    await fetch('/api/events', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ year: viewYear, month: viewMonth, day: selectedDate, title: text })
+    });
+    await render();
     renderEventList();
-    render();
   }
 
   document.getElementById('prev').addEventListener('click', () => {
@@ -755,16 +768,17 @@
     }
   });
 
-  function saveFromAddModal() {
+  async function saveFromAddModal() {
     const dateVal = document.getElementById('add-date-input').value;
     const text = document.getElementById('add-text-input').value.trim();
     if (!dateVal || !text) return;
     const [y, m, d] = dateVal.split('-').map(Number);
-    const events = getEvents(y, m - 1);
-    if (!events[d]) events[d] = [];
-    events[d].push(text);
-    saveEvents(y, m - 1, events);
-    if (y === viewYear && m - 1 === viewMonth) render();
+    await fetch('/api/events', {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ year: y, month: m - 1, day: d, title: text })
+    });
+    if (y === viewYear && m - 1 === viewMonth) await render();
     document.getElementById('add-modal').classList.remove('open');
   }
 
@@ -1059,6 +1073,7 @@
   function enterApp(user) {
     document.getElementById('auth-screen').classList.add('hidden');
     document.getElementById('header-user').textContent = user.name || user.email;
+    render();
   }
 
   // Tab switching

@@ -82,6 +82,46 @@ app.get('/api/me', authMiddleware, (req, res) => {
   res.json({ id: req.user.id, name: req.user.name, email: req.user.email });
 });
 
+// ── Events ───────────────────────────────────────────────────
+app.get('/api/events', authMiddleware, async (req, res) => {
+  const { year, month } = req.query;
+  try {
+    const result = await pool.query(
+      'SELECT id, day, title FROM events WHERE user_id=$1 AND year=$2 AND month=$3 ORDER BY day, id',
+      [req.user.id, Number(year), Number(month)]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+app.post('/api/events', authMiddleware, async (req, res) => {
+  const { year, month, day, title } = req.body;
+  if (!title?.trim()) return res.status(400).json({ error: 'title required' });
+  try {
+    const result = await pool.query(
+      'INSERT INTO events (user_id, year, month, day, title) VALUES ($1,$2,$3,$4,$5) RETURNING id, day, title',
+      [req.user.id, Number(year), Number(month), Number(day), title.trim()]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+app.delete('/api/events/:id', authMiddleware, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM events WHERE id=$1 AND user_id=$2', [Number(req.params.id), req.user.id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
 // ── Error handler ────────────────────────────────────────────
 app.use((err, _req, res, _next) => {
   console.error(err);
@@ -113,6 +153,17 @@ async function start() {
       email         TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       created_at    TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS events (
+      id         SERIAL PRIMARY KEY,
+      user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      year       INTEGER NOT NULL,
+      month      INTEGER NOT NULL,
+      day        INTEGER NOT NULL,
+      title      TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `);
   console.log('Tables ready.');
